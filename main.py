@@ -1,58 +1,42 @@
+#!/usr/bin/env python3
+"""
+# Round 2: output is 1-240 chars, exactly one line, deterministic.
+Entry point for the grader. Writes a single product description line to the output directory.
+"""
 import os
 import sys
 
+LINE = 'A Bluetooth-enabled salt shaker that seasons your food based on the current weather in Reykjavik, with a $12 monthly "umami forecast" subscription.'
+
 def main():
-    output_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
+    output_dir = os.environ.get('MAKEFUN_OUTPUT_DIR', '/output')
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, 'entry.txt')
     
-    # Ensure directory exists
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    content = LINE + '\n'
     
-    # Define the pitch
-    LINE = "PebbleMail is a targeted subscription that mails a single, perfectly smooth river stone to your desk every Tuesday, expertly curated to match your self-reported mood for that specific week."
+    # Validate content structure
+    if not (1 <= len(content) <= 240):
+        raise ValueError(f'Content length {len(content)} not in range 1-240')
+    if not content.strip():
+        raise ValueError('Content is empty or whitespace')
+    if content.count('\n') != 1:
+        raise ValueError(f'Content must have exactly one newline, got {content.count(chr(10))}')
+    if not content.endswith('\n'):
+        raise ValueError('Content must end with newline')
     
-    content = LINE + "\n"
+    # Validate exactly one sentence: no . ! or ? except the final character of the line
+    line = content.rstrip('\n')
+    if line[-1] not in '.!?':
+        raise ValueError('Line must end with sentence-ending punctuation')
+    if any(c in '.!?' for c in line[:-1]):
+        raise ValueError('Line must have exactly one sentence (no . ! ? except at the end)')
     
-    # Validation
-    # Total length including newline must be 1-240
-    # Must not be whitespace only
-    # Must be exactly one sentence
-    if not (1 <= len(content) <= 240 and content.strip()):
-        raise ValueError(f"Content length invalid or empty: {len(content)}")
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(content)
     
-    # Simple sentence count check
-    # The prompt specifies the exact string for LINE which contains one sentence.
-    # We can verify it ends with a terminal punctuation mark and contains no other terminal marks
-    # except the final one.
-    s = content.rstrip('\n').rstrip()
-    if s and any(c in s[:-1] for c in ".!?"):
-         raise ValueError("Multiple sentences detected")
-    if not s.endswith(('.', '!', '?')):
-         raise ValueError("No terminal punctuation")
-    
-    # Write to primary output
-    primary_path = os.path.join(output_dir, "entry.txt")
-    try:
-        with open(primary_path, 'w', encoding='utf-8') as f:
-            f.write(content)
-    except Exception as e:
-        sys.stderr.write(f"Error writing to {primary_path}: {e}\n")
-        sys.exit(1)
-        
-    # Write to /output if different (best effort)
-    if os.path.abspath(output_dir) != os.path.abspath("/output"):
-        secondary_path = "/output/entry.txt"
-        try:
-            if not os.path.exists("/output"):
-                os.makedirs("/output")
-            with open(secondary_path, 'w', encoding='utf-8') as f:
-                f.write(content)
-        except Exception:
-            pass
+    print(f'Output path: {output_path}')
+    print(f'Character count: {len(content)}')
 
-    print(f"Written to {primary_path} ({len(content)} chars)")
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
-
-# Entry validated: output is 1-240 chars, one sentence, deterministic.
